@@ -1,17 +1,17 @@
 /*
 	Spacebar: A FOSS re-implementation and extension of the Discord.com backend.
 	Copyright (C) 2023 Spacebar and Spacebar Contributors
-	
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU Affero General Public License as published
 	by the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
-	
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU Affero General Public License for more details.
-	
+
 	You should have received a copy of the GNU Affero General Public License
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
@@ -19,6 +19,7 @@
 import { HTTPError } from "lambert-server";
 import {
 	Column,
+	CreateDateColumn,
 	Entity,
 	JoinColumn,
 	ManyToOne,
@@ -28,6 +29,7 @@ import {
 import { DmChannelDTO } from "../dtos";
 import { ChannelCreateEvent, ChannelRecipientRemoveEvent } from "../interfaces";
 import {
+	Config,
 	InvisibleCharacters,
 	Snowflake,
 	containsAll,
@@ -36,6 +38,7 @@ import {
 	trimSpecial,
 } from "../util";
 import { BaseClass } from "./BaseClass";
+import { ActorType, FederationKey } from "./FederationKeys";
 import { Guild } from "./Guild";
 import { Invite } from "./Invite";
 import { Message } from "./Message";
@@ -71,7 +74,7 @@ export enum ChannelType {
 
 @Entity("channels")
 export class Channel extends BaseClass {
-	@Column()
+	@CreateDateColumn()
 	created_at: Date;
 
 	@Column({ nullable: true })
@@ -193,6 +196,9 @@ export class Channel extends BaseClass {
 	/** Must be calculated Channel.calculatePosition */
 	position: number;
 
+	@Column({ nullable: true, type: String, select: false })
+	domain: string | null; // federation. if null, we own this channel
+
 	// TODO: DM channel
 	static async createChannel(
 		channel: Partial<Channel>,
@@ -307,7 +313,10 @@ export class Channel extends BaseClass {
 			...channel,
 			...(!opts?.keepId && { id: Snowflake.generate() }),
 			created_at: new Date(),
-			position,
+			position:
+				(channel.type === ChannelType.UNHANDLED
+					? 0
+					: channel.position) || 0,
 		};
 
 		const ret = Channel.create(channel);
@@ -323,6 +332,16 @@ export class Channel extends BaseClass {
 				: Promise.resolve(),
 			Guild.insertChannelInOrder(guild.id, ret.id, position, guild),
 		]);
+
+		// If federation is enabled, generate signing keys for this actor.
+		setImmediate(
+			async () =>
+				Config.get().federation.enabled &&
+				(await FederationKey.generateSigningKeys(
+					ret.id,
+					ActorType.CHANNEL,
+				)),
+		);
 
 		return ret;
 	}
@@ -374,7 +393,6 @@ export class Channel extends BaseClass {
 				name,
 				type,
 				owner_id: undefined,
-				created_at: new Date(),
 				last_message_id: undefined,
 				recipients: channelRecipients.map((x) =>
 					Recipient.create({

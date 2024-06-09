@@ -16,17 +16,26 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import {
+	APError,
+	splitQualifiedMention,
+	transformOrganisationToInvite,
+	tryFederatedGuildJoin,
+	tryResolveWebfinger,
+} from "@spacebar/ap";
 import { route } from "@spacebar/api";
 import {
+	Config,
 	DiscordApiErrors,
-	emitEvent,
-	getPermission,
 	Guild,
 	Invite,
 	InviteDeleteEvent,
 	PublicInviteRelation,
 	User,
+	emitEvent,
+	getPermission,
 } from "@spacebar/util";
+import { ObjectIsOrganization } from "activitypub-types";
 import { Request, Response, Router } from "express";
 import { HTTPError } from "lambert-server";
 
@@ -46,6 +55,35 @@ router.get(
 	}),
 	async (req: Request, res: Response) => {
 		const { code } = req.params;
+		const { inputValue } = req.query;
+
+		if (inputValue && typeof inputValue == "string") {
+			const mention = splitQualifiedMention(inputValue);
+			if (mention.user.length > 0 && Config.get().federation.enabled) {
+				// This invite is in the form `invitecode@domain.com` OR `https://domain.com/whatever/invitecode`
+				// If the domain provided isn't ours, it's a federated invite
+				// and we should try and fetch that
+
+				const { domain } = mention;
+				const { accountDomain, host } = Config.get().federation;
+				if (domain != accountDomain && domain != host) {
+					// The domain isn't ours
+
+					const remoteGuild = await tryResolveWebfinger(inputValue);
+					if (remoteGuild) {
+						if (ObjectIsOrganization(remoteGuild))
+							return res.json(
+								await transformOrganisationToInvite(
+									inputValue,
+									remoteGuild,
+								),
+							);
+
+						throw new APError("Remote resource is not a guild");
+					}
+				}
+			}
+		}
 
 		const invite = await Invite.findOneOrFail({
 			where: { code },
@@ -77,8 +115,21 @@ router.post(
 	}),
 	async (req: Request, res: Response) => {
 		if (req.user_bot) throw DiscordApiErrors.BOT_PROHIBITED_ENDPOINT;
-
 		const { code } = req.params;
+
+		// Federation
+		const mention = splitQualifiedMention(code);
+		if (mention.user.length && Config.get().federation.enabled) {
+			const { domain } = mention;
+			const { accountDomain, host } = Config.get().federation;
+			if (domain != accountDomain && domain != host) {
+				// this domain isn't ours, try a federated join
+				// send a follow request to the guild
+
+				return res.json(await tryFederatedGuildJoin(code, req.user_id));
+			}
+		}
+
 		const { guild_id } = await Invite.findOneOrFail({
 			where: { code: code },
 		});

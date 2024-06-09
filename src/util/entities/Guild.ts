@@ -1,22 +1,23 @@
 /*
 	Spacebar: A FOSS re-implementation and extension of the Discord.com backend.
 	Copyright (C) 2023 Spacebar and Spacebar Contributors
-	
+
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU Affero General Public License as published
 	by the Free Software Foundation, either version 3 of the License, or
 	(at your option) any later version.
-	
+
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 	GNU Affero General Public License for more details.
-	
+
 	You should have received a copy of the GNU Affero General Public License
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import {
+	BeforeInsert,
 	Column,
 	Entity,
 	JoinColumn,
@@ -24,7 +25,14 @@ import {
 	OneToMany,
 	RelationId,
 } from "typeorm";
-import { Config, GuildWelcomeScreen, Snowflake, handleFile } from "..";
+import {
+	ActorType,
+	Config,
+	FederationKey,
+	GuildWelcomeScreen,
+	Snowflake,
+	handleFile,
+} from "..";
 import { Ban } from "./Ban";
 import { BaseClass } from "./BaseClass";
 import { Channel } from "./Channel";
@@ -76,8 +84,8 @@ export class Guild extends BaseClass {
 	@ManyToOne(() => Channel)
 	afk_channel?: Channel;
 
-	@Column({ nullable: true })
-	afk_timeout?: number;
+	@Column()
+	afk_timeout: number;
 
 	// * commented out -> use owner instead
 	// application id of the guild creator if it is bot-created
@@ -128,11 +136,11 @@ export class Guild extends BaseClass {
 	@Column({ nullable: true })
 	max_video_channel_users?: number;
 
-	@Column({ nullable: true })
-	member_count?: number;
+	@Column({ default: 0 })
+	member_count: number;
 
-	@Column({ nullable: true })
-	presence_count?: number; // users online
+	@Column({ nullable: true, type: Number, default: 0 })
+	presence_count: number | null; // users online
 
 	@OneToMany(() => Member, (member: Member) => member.guild, {
 		cascade: true,
@@ -204,8 +212,8 @@ export class Guild extends BaseClass {
 	})
 	webhooks: Webhook[];
 
-	@Column({ nullable: true })
-	mfa_level?: number;
+	@Column({ default: 0 })
+	mfa_level: number;
 
 	@Column()
 	name: string;
@@ -218,14 +226,14 @@ export class Guild extends BaseClass {
 	@ManyToOne(() => User)
 	owner?: User; // optional to allow for ownerless guilds
 
-	@Column({ nullable: true })
-	preferred_locale?: string;
+	@Column({ nullable: true, type: String, default: "en-US" })
+	preferred_locale: string | null;
 
-	@Column({ nullable: true })
+	@Column({ nullable: true, type: Number, default: 0 })
 	premium_subscription_count?: number;
 
-	@Column()
-	premium_tier?: number; // crowd premium level
+	@Column({ default: 0 })
+	premium_tier: number; // crowd premium level
 
 	@Column({ nullable: true })
 	@RelationId((guild: Guild) => guild.public_updates_channel)
@@ -257,17 +265,17 @@ export class Guild extends BaseClass {
 	@ManyToOne(() => Channel)
 	system_channel?: Channel;
 
-	@Column({ nullable: true })
+	@Column({ default: 4 }) // defaults effect: suppress the setup tips to save performance
 	system_channel_flags?: number;
 
 	@Column()
 	unavailable: boolean = false;
 
-	@Column({ nullable: true })
-	verification_level?: number;
+	@Column({ default: 0 })
+	verification_level: number;
 
-	@Column({ type: "simple-json" })
-	welcome_screen: GuildWelcomeScreen;
+	@Column({ type: "simple-json", nullable: true }) // TODO: move this to own table
+	welcome_screen: GuildWelcomeScreen | null;
 
 	@Column({ nullable: true })
 	@RelationId((guild: Guild) => guild.widget_channel)
@@ -280,8 +288,8 @@ export class Guild extends BaseClass {
 	@Column()
 	widget_enabled: boolean = true;
 
-	@Column({ nullable: true })
-	nsfw_level?: number;
+	@Column({ default: 0 })
+	nsfw_level: number;
 
 	@Column()
 	nsfw: boolean = false;
@@ -313,33 +321,6 @@ export class Guild extends BaseClass {
 			name: body.name || "Spacebar",
 			icon: await handleFile(`/icons/${guild_id}`, body.icon as string),
 			owner_id: body.owner_id, // TODO: need to figure out a way for ownerless guilds and multiply-owned guilds
-			presence_count: 0,
-			member_count: 0, // will automatically be increased by addMember()
-			mfa_level: 0,
-			preferred_locale: "en-US",
-			premium_subscription_count: 0,
-			premium_tier: 0,
-			system_channel_flags: 4, // defaults effect: suppress the setup tips to save performance
-			nsfw_level: 0,
-			verification_level: 0,
-			welcome_screen: {
-				enabled: false,
-				description: "",
-				welcome_channels: [],
-			},
-			channel_ordering: [],
-
-			afk_timeout: Config.get().defaults.guild.afkTimeout,
-			default_message_notifications:
-				Config.get().defaults.guild.defaultMessageNotifications,
-			explicit_content_filter:
-				Config.get().defaults.guild.explicitContentFilter,
-			features: Config.get().guild.defaultFeatures,
-			max_members: Config.get().limits.guild.maxMembers,
-			max_presences: Config.get().defaults.guild.maxPresences,
-			max_video_channel_users:
-				Config.get().defaults.guild.maxVideoChannelUsers,
-			region: Config.get().regions.default,
 		}).save();
 
 		// we have to create the role _after_ the guild because else we would get a "SQLITE_CONSTRAINT: FOREIGN KEY constraint failed" error
@@ -399,6 +380,16 @@ export class Guild extends BaseClass {
 			);
 		}
 
+		// If federation is enabled, generate signing keys for this actor.
+		setImmediate(
+			async () =>
+				Config.get().federation.enabled &&
+				(await FederationKey.generateSigningKeys(
+					guild.id,
+					ActorType.GUILD,
+				)),
+		);
+
 		return guild;
 	}
 
@@ -455,4 +446,32 @@ export class Guild extends BaseClass {
 			channel_ordering: undefined,
 		};
 	}
+
+	@BeforeInsert()
+	__set_defaults = () => {
+		if (!this.afk_timeout)
+			this.afk_timeout = Config.get().defaults.guild.afkTimeout;
+
+		if (!this.default_message_notifications)
+			this.default_message_notifications =
+				Config.get().defaults.guild.defaultMessageNotifications;
+
+		if (!this.explicit_content_filter)
+			this.explicit_content_filter =
+				Config.get().defaults.guild.explicitContentFilter;
+
+		if (!this.features) this.features = Config.get().guild.defaultFeatures;
+
+		if (!this.max_members)
+			this.max_members = Config.get().limits.guild.maxMembers;
+
+		if (!this.max_presences)
+			this.afk_timeout = Config.get().defaults.guild.maxPresences;
+
+		if (!this.max_video_channel_users)
+			this.max_video_channel_users =
+				Config.get().defaults.guild.maxVideoChannelUsers;
+
+		if (!this.region) this.region = Config.get().regions.default;
+	};
 }

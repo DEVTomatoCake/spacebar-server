@@ -16,9 +16,10 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { APError } from "@spacebar/ap";
+import { ApiError, Debug, FieldError } from "@spacebar/util";
 import { NextFunction, Request, Response } from "express";
 import { HTTPError } from "lambert-server";
-import { ApiError, FieldError } from "@spacebar/util";
 const EntityNotFoundErrorRegex = /"(\w+)"/;
 
 export function ErrorHandler(
@@ -35,7 +36,10 @@ export function ErrorHandler(
 		let message = error?.toString();
 		let errors = undefined;
 
-		if (error instanceof HTTPError && error.code)
+		if (
+			(error instanceof HTTPError || error instanceof APError) &&
+			error.code
+		)
 			code = httpcode = error.code;
 		else if (error instanceof ApiError) {
 			code = error.code;
@@ -71,6 +75,8 @@ export function ErrorHandler(
 		}
 
 		if (httpcode > 511) httpcode = 400;
+
+		if (error instanceof APError) Debug("Federation", error);
 
 		res.status(httpcode).json({ code: code, message, errors });
 	} catch (error) {

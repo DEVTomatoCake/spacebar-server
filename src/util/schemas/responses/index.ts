@@ -49,4 +49,5 @@ export * from "./UserProfileResponse";
 export * from "./UserRelationsResponse";
 export * from "./UserRelationshipsResponse";
 export * from "./WebAuthnCreateResponse";
+export * from "./WebfingerResponse";
 export * from "./WebhookCreateResponse";
