@@ -986,7 +986,8 @@
                         "type": "integer"
                     },
                     "presence_count": {
-                        "type": "integer"
+                        "type": "integer",
+                        "nullable": true
                     },
                     "members": {
                         "type": "array",
@@ -1055,7 +1056,8 @@
                         "$ref": "#/components/schemas/User"
                     },
                     "preferred_locale": {
-                        "type": "string"
+                        "type": "string",
+                        "nullable": true
                     },
                     "premium_subscription_count": {
                         "type": "integer"
@@ -1098,7 +1100,14 @@
                         "type": "integer"
                     },
                     "welcome_screen": {
-                        "$ref": "#/components/schemas/GuildWelcomeScreen"
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/GuildWelcomeScreen"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "widget_channel_id": {
                         "type": "string"
@@ -1133,11 +1142,17 @@
                             "type": "string"
                         }
                     },
+                    "__set_defaults": {
+                        "type": "object",
+                        "additionalProperties": false
+                    },
                     "id": {
                         "type": "string"
                     }
                 },
                 "required": [
+                    "__set_defaults",
+                    "afk_timeout",
                     "bans",
                     "channel_ordering",
                     "channels",
@@ -1145,15 +1160,22 @@
                     "features",
                     "id",
                     "invites",
+                    "member_count",
                     "members",
+                    "mfa_level",
                     "name",
                     "nsfw",
+                    "nsfw_level",
+                    "preferred_locale",
                     "premium_progress_bar_enabled",
+                    "premium_tier",
+                    "presence_count",
                     "public_updates_channel_id",
                     "roles",
                     "stickers",
                     "template",
                     "unavailable",
+                    "verification_level",
                     "voice_states",
                     "webhooks",
                     "welcome_screen",
@@ -1280,6 +1302,10 @@
                         "description": "Must be calculated Channel.calculatePosition",
                         "type": "integer"
                     },
+                    "domain": {
+                        "type": "string",
+                        "nullable": true
+                    },
                     "id": {
                         "type": "string"
                     }
@@ -1287,6 +1313,7 @@
                 "required": [
                     "created_at",
                     "default_thread_rate_limit_per_user",
+                    "domain",
                     "flags",
                     "id",
                     "nsfw",
@@ -1470,6 +1497,18 @@
                     "rights": {
                         "type": "string"
                     },
+                    "domain": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "privateKey": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "publicKey": {
+                        "type": "string",
+                        "nullable": true
+                    },
                     "sessions": {
                         "type": "array",
                         "items": {
@@ -1538,6 +1577,7 @@
                     "desktop",
                     "disabled",
                     "discriminator",
+                    "domain",
                     "extended_settings",
                     "fingerprints",
                     "flags",
@@ -1549,6 +1589,8 @@
                     "premium_since",
                     "premium_type",
                     "premium_usage_flags",
+                    "privateKey",
+                    "publicKey",
                     "public_flags",
                     "purchased_flags",
                     "relationships",
@@ -3645,11 +3687,6 @@
                     "name": {
                         "type": "string"
                     },
-                    "reload": {
-                        "description": "Reloads entity data from the database.",
-                        "type": "object",
-                        "additionalProperties": false
-                    },
                     "id": {
                         "type": "string"
                     },
@@ -3717,6 +3754,11 @@
                     },
                     "recover": {
                         "description": "Recovers a given entity in the database.",
+                        "type": "object",
+                        "additionalProperties": false
+                    },
+                    "reload": {
+                        "description": "Reloads entity data from the database.",
                         "type": "object",
                         "additionalProperties": false
                     },
@@ -3796,7 +3838,8 @@
                         "type": "integer"
                     },
                     "presence_count": {
-                        "type": "integer"
+                        "type": "integer",
+                        "nullable": true
                     },
                     "members": {
                         "type": "array",
@@ -3823,7 +3866,8 @@
                         "type": "integer"
                     },
                     "preferred_locale": {
-                        "type": "string"
+                        "type": "string",
+                        "nullable": true
                     },
                     "premium_subscription_count": {
                         "type": "integer"
@@ -3844,7 +3888,14 @@
                         "type": "integer"
                     },
                     "welcome_screen": {
-                        "$ref": "#/components/schemas/GuildWelcomeScreen"
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/GuildWelcomeScreen"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "widget_channel_id": {
                         "type": "string"
@@ -3866,10 +3917,16 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "__set_defaults": {
+                        "type": "object",
+                        "additionalProperties": false
                     }
                 },
                 "required": [
+                    "__set_defaults",
                     "_do_validate",
+                    "afk_timeout",
                     "assign",
                     "bans",
                     "channel_ordering",
@@ -3879,10 +3936,16 @@
                     "hasId",
                     "id",
                     "invites",
+                    "member_count",
                     "members",
+                    "mfa_level",
                     "name",
                     "nsfw",
+                    "nsfw_level",
+                    "preferred_locale",
                     "premium_progress_bar_enabled",
+                    "premium_tier",
+                    "presence_count",
                     "public_updates_channel_id",
                     "recover",
                     "reload",
@@ -3893,6 +3956,7 @@
                     "stickers",
                     "toJSON",
                     "unavailable",
+                    "verification_level",
                     "voice_states",
                     "webhooks",
                     "welcome_screen",
@@ -4283,6 +4347,27 @@
                 },
                 "required": [
                     "bio"
+                ]
+            },
+            "WebfingerLink": {
+                "type": "object",
+                "properties": {
+                    "rel": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "href": {
+                        "type": "string"
+                    },
+                    "template": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "href",
+                    "rel"
                 ]
             },
             "TokenResponse": {
@@ -5084,6 +5169,15 @@
                     },
                     "mention_count": {
                         "type": "integer"
+                    },
+                    "flags": {
+                        "type": "integer"
+                    },
+                    "last_viewed": {
+                        "type": "integer"
+                    },
+                    "token": {
+                        "type": "null"
                     }
                 }
             },
@@ -5231,11 +5325,11 @@
                             "filename"
                         ]
                     },
-                    "embed": {
-                        "$ref": "#/components/schemas/Embed"
-                    },
                     "flags": {
                         "type": "integer"
+                    },
+                    "embed": {
+                        "$ref": "#/components/schemas/Embed"
                     },
                     "content": {
                         "type": "string"
@@ -7424,7 +7518,8 @@
                         "type": "integer"
                     },
                     "presence_count": {
-                        "type": "integer"
+                        "type": "integer",
+                        "nullable": true
                     },
                     "members": {
                         "type": "array",
@@ -7493,7 +7588,8 @@
                         "$ref": "#/components/schemas/User"
                     },
                     "preferred_locale": {
-                        "type": "string"
+                        "type": "string",
+                        "nullable": true
                     },
                     "premium_subscription_count": {
                         "type": "integer"
@@ -7536,7 +7632,14 @@
                         "type": "integer"
                     },
                     "welcome_screen": {
-                        "$ref": "#/components/schemas/GuildWelcomeScreen"
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/GuildWelcomeScreen"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "widget_channel_id": {
                         "type": "string"
@@ -7571,11 +7674,17 @@
                             "type": "string"
                         }
                     },
+                    "__set_defaults": {
+                        "type": "object",
+                        "additionalProperties": false
+                    },
                     "id": {
                         "type": "string"
                     }
                 },
                 "required": [
+                    "__set_defaults",
+                    "afk_timeout",
                     "bans",
                     "channel_ordering",
                     "channels",
@@ -7584,15 +7693,22 @@
                     "id",
                     "invites",
                     "joined_at",
+                    "member_count",
                     "members",
+                    "mfa_level",
                     "name",
                     "nsfw",
+                    "nsfw_level",
+                    "preferred_locale",
                     "premium_progress_bar_enabled",
+                    "premium_tier",
+                    "presence_count",
                     "public_updates_channel_id",
                     "roles",
                     "stickers",
                     "template",
                     "unavailable",
+                    "verification_level",
                     "voice_states",
                     "webhooks",
                     "welcome_screen",
@@ -7902,6 +8018,31 @@
                     "name"
                 ]
             },
+            "WebfingerResponse": {
+                "type": "object",
+                "properties": {
+                    "subject": {
+                        "type": "string"
+                    },
+                    "aliases": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "links": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/WebfingerLink"
+                        }
+                    }
+                },
+                "required": [
+                    "aliases",
+                    "links",
+                    "subject"
+                ]
+            },
             "WebhookCreateResponse": {
                 "type": "object",
                 "properties": {
@@ -7915,6 +8056,23 @@
                 "required": [
                     "hook",
                     "user"
+                ]
+            },
+            "BulkBanSchema": {
+                "type": "object",
+                "properties": {
+                    "user_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "delete_message_seconds": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "user_ids"
                 ]
             },
             "BulkDeleteSchema": {
@@ -13729,12 +13887,25 @@
         },
         "/guilds/{guild_id}/bulk-ban/": {
             "post": {
-                "x-permission-required": "BAN_MEMBERS",
+                "x-permission-required": [
+                    "BAN_MEMBERS",
+                    "MANAGE_GUILD"
+                ],
                 "security": [
                     {
                         "bearer": []
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BulkBanSchema"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "",

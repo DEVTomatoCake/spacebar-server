@@ -31,7 +31,7 @@ import {
 	resolveAPObject,
 } from "./utils";
 
-export const transformMessageToAnnounceNoce = async (
+export const transformMessageToAnnounceNote = async (
 	message: Message,
 ): Promise<APAnnounce> => {
 	const { host } = Config.get().federation;
@@ -208,7 +208,7 @@ export const transformChannelToGroup = async (
 };
 
 export const transformUserToPerson = async (user: User): Promise<APPerson> => {
-	const { host, accountDomain } = Config.get().federation;
+	const { host } = Config.get().federation;
 
 	const keys = await FederationKey.findOneOrFail({
 		where: { actorId: user.id },

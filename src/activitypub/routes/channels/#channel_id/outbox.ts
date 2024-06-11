@@ -1,6 +1,6 @@
 import {
 	makeOrderedCollection,
-	transformMessageToAnnounceNoce,
+	transformMessageToAnnounceNote,
 } from "@spacebar/ap";
 import { route } from "@spacebar/api";
 import { Config, Message, Snowflake } from "@spacebar/util";
@@ -42,7 +42,7 @@ router.get("/", route({}), async (req: Request, res: Response) => {
 			const messages = await Message.find(query);
 
 			return await Promise.all(
-				messages.map((x) => transformMessageToAnnounceNoce(x)),
+				messages.map((x) => transformMessageToAnnounceNote(x)),
 			);
 		},
 	});

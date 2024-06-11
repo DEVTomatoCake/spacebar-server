@@ -41,8 +41,10 @@ export class HttpSig {
 		if (!sigheader) throw new APError("Missing signature");
 		const sigopts: { [key: string]: string | undefined } = Object.assign(
 			{},
-			...sigheader.split(",").flatMap((keyval) => {
+			...sigheader.split(",").flatMap((keyval, i) => {
 				const split = keyval.split("=");
+				if (split.length != 2) throw new APError("Invalid signature: Entry " + i + " is not key=value");
+
 				return {
 					[split[0]]: split[1].replaceAll('"', ""),
 				};
@@ -52,7 +54,7 @@ export class HttpSig {
 		const { signature, headers, keyId, algorithm } = sigopts;
 
 		if (!signature || !headers || !keyId)
-			throw new APError("Invalid signature");
+			throw new APError("Invalid signature: Missing at least one of (signature, headers, keyId)");
 
 		const ALLOWED_ALGO = "rsa-sha256";
 
