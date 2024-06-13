@@ -43,7 +43,8 @@ export class HttpSig {
 			{},
 			...sigheader.split(",").flatMap((keyval, i) => {
 				const split = keyval.split("=");
-				if (split.length != 2) throw new APError("Invalid signature: Entry " + i + " is not key=value");
+				// May be longer than 2 due to Base64 trailing =s
+				if (split.length < 2) throw new APError("Invalid signature: Entry " + i + " is not key=value");
 
 				return {
 					[split[0]]: split[1].replaceAll('"', ""),

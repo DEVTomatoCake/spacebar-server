@@ -258,7 +258,6 @@ export const transformUserToPerson = async (user: User): Promise<APPerson> => {
 	};
 };
 
-// TODO: this was copied from previous implementation. refactor.
 export const transformPersonToUser = async (person: APPerson) => {
 	if (!person.id) throw new APError("User must have ID");
 
@@ -297,12 +296,12 @@ export const transformPersonToUser = async (person: APPerson) => {
 		},
 		extended_settings: "{}",
 		settings: UserSettings.create(),
-		premium: false,
 
 		premium_since: Config.get().defaults.user.premium
 			? new Date()
 			: undefined,
 		rights: Config.get().register.defaultRights,
+		premium: Config.get().defaults.user.premium ?? false,
 		premium_type: Config.get().defaults.user.premiumType ?? 0,
 		verified: Config.get().defaults.user.verified ?? true,
 		created_at: new Date(),

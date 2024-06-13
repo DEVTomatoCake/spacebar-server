@@ -152,9 +152,8 @@ export const fetchFederatedUser = async (
 	actorId: string,
 ): Promise<{ keys: FederationKey; entity: BaseClass }> => {
 	// if we were given webfinger, resolve that first
-	const mention = splitQualifiedMention(actorId);
 	const cache = await FederationKey.findOne({
-		where: { username: mention.user, domain: mention.domain },
+		where: { federatedId: actorId },
 	});
 	if (cache) {
 		return {
@@ -181,6 +180,7 @@ export const fetchFederatedUser = async (
 	)
 		throw new APError("Actor inbox/outbox must be string");
 
+	const mention = splitQualifiedMention(actorId);
 	const keys = FederationKey.create({
 		actorId: Snowflake.generate(),
 		federatedId: actorId,
@@ -211,12 +211,12 @@ export const fetchFederatedUser = async (
 			},
 			extended_settings: "{}",
 			settings: UserSettings.create(),
-			premium: false,
 
 			premium_since: Config.get().defaults.user.premium
 				? new Date()
 				: undefined,
 			rights: Config.get().register.defaultRights,
+			premium: Config.get().defaults.user.premium ?? false,
 			premium_type: Config.get().defaults.user.premiumType ?? 0,
 			verified: Config.get().defaults.user.verified ?? true,
 			created_at: new Date(),
