@@ -12,6 +12,7 @@ import { Request, Response, Router } from "express";
 import { Server, ServerOptions } from "lambert-server";
 import path from "path";
 import wellknown from "./well-known";
+import nodeinfo from "./nodeinfo";
 
 type SpacebarServerOptions = ServerOptions;
 
@@ -73,6 +74,7 @@ export class FederationServer extends Server {
 
 		this.app.use("/federation", api);
 		this.app.use("/.well-known", wellknown);
+		this.app.use("/nodeinfo", nodeinfo);
 
 		this.app.use(ErrorHandler);
 

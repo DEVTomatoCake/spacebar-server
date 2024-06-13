@@ -94,10 +94,6 @@ router.get(
 					type: "application/activity+json",
 					href: `https://${host}/federation/${keys.type}/${entity.id}`,
 				},
-				// {
-				// 	rel: "http://ostatus.org/schema/1.0/subscribe",
-				// 	href: `"https://${host}/fed/authorize-follow?acct={uri}"`,
-				// },
 			],
 		});
 	},
@@ -115,6 +111,17 @@ router.get("/host-meta", route({}), (req, res) => {
 	</XRD>`;
 
 	return res.send(ret);
+});
+
+router.get("/nodeinfo", route({}), (req, res) => {
+	const { host } = Config.get().federation;
+
+	res.send({
+		links: [{
+			rel: "http://nodeinfo.diaspora.software/ns/schema/2.0",
+			href: "https://" + host + "/nodeinfo/2.0.json"
+		}]
+	});
 });
 
 export default router;

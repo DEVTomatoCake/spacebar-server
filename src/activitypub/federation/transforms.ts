@@ -60,12 +60,15 @@ export const transformMessageToAnnounceNote = async (
 		);
 	}
 
+	const author: FederationKey = await FederationKey.findOneOrFail({
+		where: { actorId: message.author_id },
+	});
+
 	return {
 		"@context": ACTIVITYSTREAMS_CONTEXT,
 		type: "Announce",
 		id: `https://${host}/federation/channels/${message.channel_id}/messages/${message.id}`,
-		// this is wrong for remote users
-		actor: `https://${host}/federation/users/${message.author_id}`,
+		actor: author.federatedId,
 		published: message.timestamp,
 		to,
 		object: await transformMessageToNote(message),
@@ -80,13 +83,26 @@ export const transformMessageToNote = async (
 	const referencedMessage = message.message_reference
 		? await Message.findOne({
 				where: { id: message.message_reference.message_id },
-		  })
+			})
 		: null;
+
+	const mentionIds: Array<string> = [];
+	for await (const mention of message.mentions) {
+		const mentioned = await FederationKey.findOne({
+			where: { actorId: mention.id },
+		});
+		if (mentioned) mentionIds.push(mentioned.federatedId);
+	}
 
 	return {
 		id: `https://${host}/federation/messages/${message.id}`,
 		type: "Note",
 		content: message.content, // TODO: convert markdown to html
+		mediaType: "text/markdown",
+		source: {
+			content: message.content || "",
+			mediaType: "text/markdown"
+		},
 		inReplyTo: referencedMessage
 			? await transformMessageToNote(referencedMessage)
 			: undefined,
@@ -94,9 +110,7 @@ export const transformMessageToNote = async (
 		attributedTo: `https://${host}/federation/users/${message.author_id}`,
 
 		to: `https://${host}/federation/channels/${message.channel_id}/followers`,
-		tag: message.mentions?.map(
-			(x) => `https://${host}/federation/users/${x.id}`,
-		),
+		tag: mentionIds,
 		attachment: [],
 		// replies: [],
 		// sbType: message.type,
@@ -188,7 +202,7 @@ export const transformChannelToGroup = async (
 	return {
 		"@context": "https://www.w3.org/ns/activitystreams",
 		type: "Group",
-		id: `https://${host}/fed/channels/${channel.id}`,
+		id: `https://${host}/federation/channels/${channel.id}`,
 		name: channel.name,
 		preferredUsername: channel.id,
 		summary: channel.topic,
@@ -196,14 +210,14 @@ export const transformChannelToGroup = async (
 		// discoverable: true,
 
 		publicKey: {
-			id: `https://${host}/fed/user/${channel.id}#main-key`,
-			owner: `https://${host}/fed/user/${channel.id}`,
+			id: `https://${host}/federation/users/${channel.id}#main-key`,
+			owner: `https://${host}/federation/users/${channel.id}`,
 			publicKeyPem: keys.publicKey,
 		},
 
-		inbox: `https://${host}/fed/channels/${channel.id}/inbox`,
-		outbox: `https://${host}/fed/channels/${channel.id}/outbox`,
-		followers: `https://${host}/fed/channels/${channel.id}/followers`,
+		inbox: `https://${host}/federation/channels/${channel.id}/inbox`,
+		outbox: `https://${host}/federation/channels/${channel.id}/outbox`,
+		followers: `https://${host}/federation/channels/${channel.id}/followers`,
 	};
 };
 
