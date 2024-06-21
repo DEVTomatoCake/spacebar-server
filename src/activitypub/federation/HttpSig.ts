@@ -24,6 +24,7 @@ export class HttpSig {
 	}
 
 	// TODO: Support hs2019 algo
+	// Maybe use https://www.npmjs.com/package/@peertube/http-signature ?
 	public static async validate(
 		target: string,
 		activity: APActivity,
@@ -52,7 +53,11 @@ export class HttpSig {
 			}),
 		);
 
-		const { signature, headers, keyId, algorithm } = sigopts;
+		const { signature, headers, keyId } = sigopts;
+
+		let { algorithm } = sigopts;
+		//https://swicg.github.io/activitypub-http-signature/#how-to-verify-a-signature 4.
+		if (algorithm == "hs2019") algorithm = "rsa-sha256";
 
 		if (!signature || !headers || !keyId)
 			throw new APError("Invalid signature: Missing at least one of (signature, headers, keyId)");
