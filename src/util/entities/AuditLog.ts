@@ -16,22 +16,23 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Column, Entity, JoinColumn, ManyToOne, RelationId } from "typeorm";
+import {
+	Column,
+	CreateDateColumn,
+	Entity,
+	JoinColumn,
+	ManyToOne,
+	RelationId,
+} from "typeorm";
 import { BaseClass } from "./BaseClass";
 import { ChannelPermissionOverwrite } from "./Channel";
 import { User } from "./User";
 import { dbEngine } from "../util/Database";
+import { Guild } from "./Guild";
 
 export enum AuditLogEvents {
 	// guild level
 	GUILD_UPDATE = 1,
-	GUILD_IMPORT = 2,
-	GUILD_EXPORTED = 3,
-	GUILD_ARCHIVE = 4,
-	GUILD_UNARCHIVE = 5,
-	// join-leave
-	USER_JOIN = 6,
-	USER_LEAVE = 7,
 	// channels
 	CHANNEL_CREATE = 10,
 	CHANNEL_UPDATE = 11,
@@ -55,7 +56,6 @@ export enum AuditLogEvents {
 	ROLE_CREATE = 30,
 	ROLE_UPDATE = 31,
 	ROLE_DELETE = 32,
-	ROLE_SWAP = 33,
 	// invites
 	INVITE_CREATE = 40,
 	INVITE_UPDATE = 41,
@@ -64,15 +64,11 @@ export enum AuditLogEvents {
 	WEBHOOK_CREATE = 50,
 	WEBHOOK_UPDATE = 51,
 	WEBHOOK_DELETE = 52,
-	WEBHOOK_SWAP = 53,
 	// custom emojis
 	EMOJI_CREATE = 60,
 	EMOJI_UPDATE = 61,
 	EMOJI_DELETE = 62,
-	EMOJI_SWAP = 63,
-	// deletion
-	MESSAGE_CREATE = 70, // messages sent using non-primary seat of the user only
-	MESSAGE_EDIT = 71, // non-self edits only
+	// message deletion
 	MESSAGE_DELETE = 72,
 	MESSAGE_BULK_DELETE = 73,
 	// pinning
@@ -90,7 +86,10 @@ export enum AuditLogEvents {
 	STICKER_CREATE = 90,
 	STICKER_UPDATE = 91,
 	STICKER_DELETE = 92,
-	STICKER_SWAP = 93,
+	// scheduled events
+	GUILD_SCHEDULED_EVENT_CREATE = 100,
+	GUILD_SCHEDULED_EVENT_UPDATE = 101,
+	GUILD_SCHEDULED_EVENT_DELETE = 102,
 	// threads
 	THREAD_CREATE = 110,
 	THREAD_UPDATE = 111,
@@ -98,18 +97,43 @@ export enum AuditLogEvents {
 	// application commands
 	APPLICATION_COMMAND_PERMISSION_UPDATE = 121,
 	// automod
-	POLICY_CREATE = 140,
-	POLICY_UPDATE = 141,
-	POLICY_DELETE = 142,
-	MESSAGE_BLOCKED_BY_POLICIES = 143, // in spacebar, blocked messages are stealth-dropped
-	// instance policies affecting the guild
-	GUILD_AFFECTED_BY_POLICIES = 216,
-	// message moves
-	IN_GUILD_MESSAGE_MOVE = 223,
-	CROSS_GUILD_MESSAGE_MOVE = 224,
-	// message routing
-	ROUTE_CREATE = 225,
-	ROUTE_UPDATE = 226,
+	AUTO_MODERATION_RULE_CREATE = 140,
+	AUTO_MODERATION_RULE_UPDATE = 141,
+	AUTO_MODERATION_RULE_DELETE = 142,
+	AUTO_MODERATION_BLOCK_MESSAGE = 143,
+	AUTO_MODERATION_FLAG_TO_CHANNEL = 144,
+	AUTO_MODERATION_USER_COMMUNICATION_DISABLED = 145,
+	AUTO_MODERATION_QUARANTINE_USER = 146,
+	// monetization
+	CREATOR_MONETIZATION_REQUEST_CREATED = 150,
+	CREATOR_MONETIZATION_TERMS_ACCEPTED = 151,
+	// onboarding
+	ONBOARDING_PROMPT_CREATE = 163,
+	ONBOARDING_PROMPT_UPDATE = 164,
+	ONBOARDING_PROMPT_DELETE = 165,
+	ONBOARDING_CREATE = 166,
+	ONBOARDING_UPDATE = 167,
+	HOME_SETTINGS_CREATE = 190,
+	HOME_SETTINGS_UPDATE = 191,
+	// voice status
+	VOICE_CHANNEL_STATUS_UPDATE = 192,
+	VOICE_CHANNEL_STATUS_DELETE = 193,
+}
+
+export enum AuditLogEntityType {
+	Guild = "Guild", // only current guild allowed
+	Channel = "Channel",
+	Role = "Role",
+	Member = "Member",
+	Message = "Message",
+	Integration = "Integration",
+	Webhook = "Webhook",
+	Emoji = "Emoji",
+	Sticker = "Sticker",
+	AutoModerationRule = "AutoModerationRule",
+	StageInstance = "StageInstance",
+	GuildScheduledEvent = "GuildScheduledEvent",
+	// to be expanded
 }
 
 @Entity({
@@ -117,9 +141,19 @@ export enum AuditLogEvents {
 	engine: dbEngine,
 })
 export class AuditLog extends BaseClass {
-	@JoinColumn({ name: "target_id" })
-	@ManyToOne(() => User)
-	target?: User;
+	@Column()
+	@RelationId((auditlog: AuditLog) => auditlog.guild)
+	guild_id: string;
+
+	@JoinColumn({ name: "guild_id" })
+	@ManyToOne(() => Guild)
+	guild: Guild;
+
+	@Column({ nullable: true })
+	target_type: AuditLogEntityType; // Target entity to know where to look for target_id
+
+	@Column({ nullable: true })
+	target_id: string; // Target entity, e.g. user/role/webhook ID
 
 	@Column({ nullable: true })
 	@RelationId((auditlog: AuditLog) => auditlog.user)
@@ -134,14 +168,19 @@ export class AuditLog extends BaseClass {
 
 	@Column({ type: "simple-json", nullable: true })
 	options?: {
-		delete_member_days?: string;
-		members_removed?: string;
+		application_id?: string;
+		auto_moderation_rule_name?: string;
+		auto_moderation_rule_trigger_type?: string;
 		channel_id?: string;
-		messaged_id?: string;
 		count?: string;
+		delete_member_days?: string;
 		id?: string;
-		type?: string;
+		integration_type?: string;
+		members_removed?: string;
+		message_id?: string;
 		role_name?: string;
+		type?: string;
+		status?: string;
 	};
 
 	@Column()
@@ -150,6 +189,10 @@ export class AuditLog extends BaseClass {
 
 	@Column({ nullable: true })
 	reason?: string;
+
+	@Column()
+	@CreateDateColumn()
+	timestamp: Date;
 }
 
 export interface AuditLogChange {
