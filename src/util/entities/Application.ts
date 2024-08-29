@@ -16,7 +16,7 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Column, Entity, JoinColumn, ManyToOne, OneToOne } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToOne, RelationId } from "typeorm";
 import { BaseClass } from "./BaseClass";
 import { Team } from "./Team";
 import { User } from "./User";
@@ -53,6 +53,10 @@ export class Application extends BaseClass {
 
 	@Column()
 	verify_key: string;
+
+	@Column({ nullable: true })
+	// TODO: @RelationId((application: Application) => application.owner)
+	owner_id: string;
 
 	@JoinColumn({ name: "owner_id" })
 	@ManyToOne(() => User, { onDelete: "CASCADE" })

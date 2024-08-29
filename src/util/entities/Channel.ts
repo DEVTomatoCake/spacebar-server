@@ -70,6 +70,30 @@ export enum ChannelType {
 	UNHANDLED = 255, // unhandled unowned pass-through channel type
 }
 
+export const ChannelTypeString = {
+	[ChannelType.GUILD_TEXT]: "GUILD_TEXT",
+	[ChannelType.DM]: "DM",
+	[ChannelType.GUILD_VOICE]: "GUILD_VOICE",
+	[ChannelType.GROUP_DM]: "GROUP_DM",
+	[ChannelType.GUILD_CATEGORY]: "GUILD_CATEGORY",
+	[ChannelType.GUILD_NEWS]: "GUILD_NEWS",
+	[ChannelType.GUILD_STORE]: "GUILD_STORE",
+	[ChannelType.ENCRYPTED]: "ENCRYPTED",
+	[ChannelType.ENCRYPTED_THREAD]: "ENCRYPTED_THREAD",
+	[ChannelType.TRANSACTIONAL]: "TRANSACTIONAL",
+	[ChannelType.GUILD_NEWS_THREAD]: "GUILD_NEWS_THREAD",
+	[ChannelType.GUILD_PUBLIC_THREAD]: "GUILD_PUBLIC_THREAD",
+	[ChannelType.GUILD_PRIVATE_THREAD]: "GUILD_PRIVATE_THREAD",
+	[ChannelType.GUILD_STAGE_VOICE]: "GUILD_STAGE_VOICE",
+	[ChannelType.DIRECTORY]: "DIRECTORY",
+	[ChannelType.GUILD_FORUM]: "GUILD_FORUM",
+	[ChannelType.TICKET_TRACKER]: "TICKET_TRACKER",
+	[ChannelType.KANBAN]: "KANBAN",
+	[ChannelType.VOICELESS_WHITEBOARD]: "VOICELESS_WHITEBOARD",
+	[ChannelType.CUSTOM_START]: "CUSTOM_START",
+	[ChannelType.UNHANDLED]: "UNHANDLED",
+}
+
 @Entity({
 	name: "channels",
 	engine: dbEngine,
