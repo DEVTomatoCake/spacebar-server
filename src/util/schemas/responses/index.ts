@@ -24,7 +24,7 @@ export * from "./DiscoverableGuildsResponse";
 export * from "./GatewayBotResponse";
 export * from "./GatewayResponse";
 export * from "./GenerateRegistrationTokensResponse";
-export * from "./HarvestResponse";
+export * from "./TakeoutResponse";
 export * from "./GuildBansResponse";
 export * from "./GuildCreateResponse";
 export * from "./GuildDiscoveryRequirements";

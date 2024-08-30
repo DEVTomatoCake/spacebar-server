@@ -20,8 +20,8 @@ import { route } from "@spacebar/api";
 import {
 	Snowflake,
 	User,
-	HarvestResponse,
-	HarvestStatus,
+	TakeoutResponse,
+	TakeoutStatus,
 	Member,
 	Message,
 	PrivateUserProjection,
@@ -51,7 +51,7 @@ router.get(
 	route({
 		responses: {
 			200: {
-				body: "HarvestResponse",
+				body: "TakeoutResponse",
 			},
 			401: {
 				body: "APIErrorResponse",
@@ -68,9 +68,9 @@ router.get(
 			// @ts-expect-error Missing types for constructor
 			zip = new JSZip();
 		} catch (e) {
-			console.error("[Data export/Harvest] Failed to import JSZip", e);
+			console.error("[Takeout] Failed to import JSZip. Install the NPM package \"jszip\" for takeouts to work.", e);
 			throw new HTTPError(
-				'The NPM package "jszip" has to be installed for data exports/harvests to work.',
+				'The NPM package "jszip" has to be installed for takeouts to work.',
 				500,
 			);
 		}
@@ -88,24 +88,21 @@ router.get(
 			relations: ["settings", "relationships"],
 		});
 
-		const harvestId = Snowflake.generate();
+		const takeoutId = Snowflake.generate();
 		res.send({
-			harvest_id: harvestId,
+			harvest_id: takeoutId,
 			user_id: req.user_id,
-			status: HarvestStatus.RUNNING,
+			status: TakeoutStatus.RUNNING,
 			created_at: new Date(),
 			polled_at: new Date(),
-		} as HarvestResponse);
+		} as TakeoutResponse);
 
-		// TODO: remove
-		await fs.rm(path.join(process.cwd(), "harvest"), { recursive: true });
+		const takeoutPath = path.join(process.cwd(), "takeout", takeoutId);
+		await fs.mkdir(takeoutPath, { recursive: true });
 
-		const harvestPath = path.join(process.cwd(), "harvest", harvestId);
-		await fs.mkdir(harvestPath, { recursive: true });
-
-		await fs.mkdir(path.join(harvestPath, "account"));
+		await fs.mkdir(path.join(takeoutPath, "account"));
 		await fs.writeFile(
-			path.join(harvestPath, "account", "user.json"),
+			path.join(takeoutPath, "account", "user.json"),
 			JSON.stringify(user, null, "\t"),
 		);
 
@@ -115,7 +112,7 @@ router.get(
 			);
 			if (avatarFile)
 				await fs.writeFile(
-					path.join(harvestPath, "account", "avatar.png"),
+					path.join(takeoutPath, "account", "avatar.png"),
 					avatarFile,
 				);
 		}
@@ -125,7 +122,7 @@ router.get(
 			);
 			if (bannerFile)
 				await fs.writeFile(
-					path.join(harvestPath, "account", "banner.png"),
+					path.join(takeoutPath, "account", "banner.png"),
 					bannerFile,
 				);
 		}
@@ -135,10 +132,10 @@ router.get(
 			relations: ["bot"],
 		});
 		if (applications.length > 0) {
-			await fs.mkdir(path.join(harvestPath, "account", "applications"));
+			await fs.mkdir(path.join(takeoutPath, "account", "applications"));
 			for await (const app of applications) {
 				const appPath = path.join(
-					harvestPath,
+					takeoutPath,
 					"account",
 					"applications",
 					app.id,
@@ -186,14 +183,14 @@ router.get(
 			where: { author_id: req.user_id },
 			relations: ["channel", "guild", "attachments"],
 		});
-		await fs.mkdir(path.join(harvestPath, "messages"));
+		await fs.mkdir(path.join(takeoutPath, "messages"));
 
 		const channelDirs = new Set();
 		const channelMessages = new Map();
 		for await (const msg of messages) {
 			if (!channelDirs.has(msg.channel_id)) {
 				await fs.mkdir(
-					path.join(harvestPath, "messages", "c" + msg.channel_id),
+					path.join(takeoutPath, "messages", "c" + msg.channel_id),
 				);
 				channelDirs.add(msg.channel_id);
 
@@ -203,7 +200,7 @@ router.get(
 					name: msg.channel.name,
 				};
 				if (msg.guild)
-					// @ts-ignore yes a new property is fine
+					// @ts-expect-error yes that property is fine
 					transformedChannel.guild = {
 						id: msg.guild.id,
 						name: msg.guild.name,
@@ -211,7 +208,7 @@ router.get(
 
 				await fs.writeFile(
 					path.join(
-						harvestPath,
+						takeoutPath,
 						"messages",
 						"c" + msg.channel_id,
 						"channel.json",
@@ -238,7 +235,7 @@ router.get(
 		for await (const [channelId, messages] of channelMessages) {
 			await fs.writeFile(
 				path.join(
-					harvestPath,
+					takeoutPath,
 					"messages",
 					"c" + channelId,
 					"messages.json",
@@ -252,10 +249,10 @@ router.get(
 			where: { id: req.user_id },
 			relations: ["guild"],
 		});
-		await fs.mkdir(path.join(harvestPath, "servers"));
+		await fs.mkdir(path.join(takeoutPath, "servers"));
 		for await (const member of members) {
 			const guildPath = path.join(
-				harvestPath,
+				takeoutPath,
 				"servers",
 				member.guild_id,
 			);
@@ -328,7 +325,7 @@ router.get(
 			}
 		}
 
-		const files = await fs.readdir(harvestPath, {
+		const files = await fs.readdir(takeoutPath, {
 			withFileTypes: true,
 			recursive: true,
 		});
@@ -342,7 +339,7 @@ router.get(
 						zip.file(
 							path
 								.join(file.parentPath, file.name)
-								.replace(harvestPath, "")
+								.replace(takeoutPath, "")
 								.slice(path.sep.length),
 							data,
 						),
@@ -352,7 +349,10 @@ router.get(
 		await Promise.all(promises);
 
 		const buffer = await zip.generateAsync({ type: "nodebuffer" });
-		await fs.writeFile(path.join(harvestPath, "harvest.zip"), buffer);
+		await fs.writeFile(path.join(takeoutPath, takeoutId + ".zip"), buffer);
+		await storage.set("takeouts/" + takeoutId + ".zip", buffer);
+
+		await fs.rm(takeoutPath, { recursive: true });
 	},
 );
 

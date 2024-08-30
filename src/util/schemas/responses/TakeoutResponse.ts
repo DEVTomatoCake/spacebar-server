@@ -16,17 +16,17 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export enum HarvestStatus {
+export enum TakeoutStatus {
 	QUEUED = 0,
 	RUNNING = 1,
 	FAILED = 2,
 	COMPLETED = 3,
 }
 
-export interface HarvestResponse {
+export interface TakeoutResponse {
 	harvest_id: string;
 	user_id: string;
-	status: HarvestStatus;
+	status: TakeoutStatus;
 	created_at: Date;
 	polled_at: Date;
 	completed_at?: Date;
