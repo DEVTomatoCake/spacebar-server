@@ -92,7 +92,7 @@ export const ChannelTypeString = {
 	[ChannelType.VOICELESS_WHITEBOARD]: "VOICELESS_WHITEBOARD",
 	[ChannelType.CUSTOM_START]: "CUSTOM_START",
 	[ChannelType.UNHANDLED]: "UNHANDLED",
-}
+};
 
 @Entity({
 	name: "channels",

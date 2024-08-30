@@ -3013,6 +3013,9 @@
                     "verify_key": {
                         "type": "string"
                     },
+                    "owner_id": {
+                        "type": "string"
+                    },
                     "owner": {
                         "$ref": "#/components/schemas/User"
                     },
@@ -3113,6 +3116,7 @@
                     "integration_require_code_grant",
                     "name",
                     "owner",
+                    "owner_id",
                     "redirect_uris",
                     "rpc_application_state",
                     "store_application_state",
@@ -3809,6 +3813,15 @@
                     "enabled",
                     "welcome_channels"
                 ]
+            },
+            "HarvestStatus": {
+                "enum": [
+                    0,
+                    1,
+                    2,
+                    3
+                ],
+                "type": "number"
             },
             "GuildMessagesSearchMessage": {
                 "type": "object",
@@ -7144,6 +7157,39 @@
                 },
                 "required": [
                     "tokens"
+                ]
+            },
+            "HarvestResponse": {
+                "type": "object",
+                "properties": {
+                    "harvest_id": {
+                        "type": "string"
+                    },
+                    "user_id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/HarvestStatus"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "polled_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "completed_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "harvest_id",
+                    "polled_at",
+                    "status",
+                    "user_id"
                 ]
             },
             "GuildBansResponse": {
@@ -10530,6 +10576,61 @@
                 ]
             }
         },
+        "/users/{id}/harvest/": {
+            "get": {
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HarvestResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "id"
+                    }
+                ],
+                "tags": [
+                    "users"
+                ]
+            }
+        },
         "/users/{id}/delete/": {
             "post": {
                 "x-right-required": "MANAGE_USERS",
@@ -10945,6 +11046,12 @@
                 },
                 "tags": [
                     "scheduled-maintenances"
+                ],
+                "x-badges": [
+                    {
+                        "label": "Spacebar-only",
+                        "color": "red"
+                    }
                 ]
             }
         },
