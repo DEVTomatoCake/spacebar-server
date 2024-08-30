@@ -28,12 +28,21 @@ import {
 	Application,
 	ChannelTypeString,
 	getRights,
+	JSZipType,
 } from "@spacebar/util";
 import { storage } from "../../../../cdn/util/Storage";
 
 import { Request, Response, Router } from "express";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { HTTPError } from "lambert-server";
+
+let JSZip: JSZipType | undefined = undefined;
+try {
+	JSZip = require("jszip") as JSZipType;
+} catch {
+	// empty
+}
 
 const router = Router();
 
@@ -53,6 +62,19 @@ router.get(
 		},
 	}),
 	async (req: Request, res: Response) => {
+		let zip: JSZipType;
+		try {
+			JSZip = require("jszip");
+			// @ts-expect-error Missing types for constructor
+			zip = new JSZip();
+		} catch (e) {
+			console.error("[Data export/Harvest] Failed to import JSZip", e);
+			throw new HTTPError(
+				'The NPM package "jszip" has to be installed for data exports/harvests to work.',
+				500,
+			);
+		}
+
 		if (req.params.id != "@me") {
 			const rights = await getRights(req.user_id);
 			rights.hasThrow("MANAGE_USERS");
@@ -115,34 +137,36 @@ router.get(
 		if (applications.length > 0) {
 			await fs.mkdir(path.join(harvestPath, "account", "applications"));
 			for await (const app of applications) {
-				await fs.mkdir(
-					path.join(harvestPath, "account", "applications", app.id),
+				const appPath = path.join(
+					harvestPath,
+					"account",
+					"applications",
+					app.id,
 				);
+				await fs.mkdir(appPath);
 				await fs.writeFile(
-					path.join(
-						harvestPath,
-						"account",
-						"applications",
-						app.id,
-						"application.json",
-					),
+					path.join(appPath, "application.json"),
 					JSON.stringify(app, null, "\t"),
 				);
 
 				if (app.icon) {
 					const iconFile = await storage.get(
-						"applications/" + app.id + "/" + app.icon,
+						"app-icons/" + app.id + "/" + app.icon,
 					);
 					if (iconFile)
 						await fs.writeFile(
-							path.join(
-								harvestPath,
-								"account",
-								"applications",
-								app.id,
-								"icon.png",
-							),
+							path.join(appPath, "icon.png"),
 							iconFile,
+						);
+				}
+				if (app.cover_image) {
+					const coverImageFile = await storage.get(
+						"applications/" + app.id + "/" + app.cover_image,
+					);
+					if (coverImageFile)
+						await fs.writeFile(
+							path.join(appPath, "cover_image.png"),
+							coverImageFile,
 						);
 				}
 				if (app.bot && app.bot.avatar) {
@@ -151,13 +175,7 @@ router.get(
 					);
 					if (botAvatarFile)
 						await fs.writeFile(
-							path.join(
-								harvestPath,
-								"account",
-								"applications",
-								app.id,
-								"bot_avatar.png",
-							),
+							path.join(appPath, "bot_avatar.png"),
 							botAvatarFile,
 						);
 				}
@@ -166,7 +184,7 @@ router.get(
 
 		const messages = await Message.find({
 			where: { author_id: req.user_id },
-			relations: ["channel"],
+			relations: ["channel", "guild", "attachments"],
 		});
 		await fs.mkdir(path.join(harvestPath, "messages"));
 
@@ -183,13 +201,14 @@ router.get(
 					id: msg.channel_id,
 					type: ChannelTypeString[msg.channel.type],
 					name: msg.channel.name,
-					guild: msg.guild
-						? {
-								id: msg.channel.guild_id,
-								name: msg.guild.name,
-						  }
-						: null,
 				};
+				if (msg.guild)
+					// @ts-ignore yes a new property is fine
+					transformedChannel.guild = {
+						id: msg.guild.id,
+						name: msg.guild.name,
+					};
+
 				await fs.writeFile(
 					path.join(
 						harvestPath,
@@ -204,8 +223,11 @@ router.get(
 			const transformedMsg = {
 				ID: msg.id,
 				Timestamp: msg.timestamp.toISOString(),
-				Contents: msg.content,
-				Attachments: msg.attachments,
+				Contents: msg.content || "",
+				Attachments:
+					msg.attachments && msg.attachments.length > 0
+						? JSON.stringify(msg.attachments)
+						: "",
 			};
 			if (channelMessages.has(msg.channel_id))
 				channelMessages.get(msg.channel_id).push(transformedMsg);
@@ -305,6 +327,32 @@ router.get(
 				);
 			}
 		}
+
+		const files = await fs.readdir(harvestPath, {
+			withFileTypes: true,
+			recursive: true,
+		});
+		const promises = [];
+		for await (const file of files) {
+			if (!file.isFile()) continue;
+			promises.push(
+				fs
+					.readFile(path.join(file.parentPath, file.name))
+					.then((data) =>
+						zip.file(
+							path
+								.join(file.parentPath, file.name)
+								.replace(harvestPath, "")
+								.slice(path.sep.length),
+							data,
+						),
+					),
+			);
+		}
+		await Promise.all(promises);
+
+		const buffer = await zip.generateAsync({ type: "nodebuffer" });
+		await fs.writeFile(path.join(harvestPath, "harvest.zip"), buffer);
 	},
 );
 

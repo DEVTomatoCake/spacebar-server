@@ -16,7 +16,9 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-export * from "./OrmUtils";
-export * from "./Erlpack";
-export * from "./Jimp";
-export * from "./JSZip";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+export type JSZipType = {
+	generateAsync: (options: object) => any;
+	file: (name: string, content: any) => void;
+};

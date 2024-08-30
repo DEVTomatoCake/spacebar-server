@@ -62,7 +62,7 @@ export class Application extends BaseClass {
 	verify_key: string;
 
 	@Column({ nullable: true })
-	// TODO: @RelationId((application: Application) => application.owner)
+	@RelationId((application: Application) => application.owner)
 	owner_id: string;
 
 	@JoinColumn({ name: "owner_id" })
