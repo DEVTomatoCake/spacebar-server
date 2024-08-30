@@ -16,7 +16,14 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Column, Entity, JoinColumn, ManyToOne, Unique } from "typeorm";
+import {
+	Column,
+	Entity,
+	JoinColumn,
+	ManyToOne,
+	RelationId,
+	Unique,
+} from "typeorm";
 import { BaseClass } from "./BaseClass";
 import { User } from "./User";
 import { dbEngine } from "../util/Database";
@@ -27,6 +34,10 @@ import { dbEngine } from "../util/Database";
 })
 @Unique(["owner", "target"])
 export class Note extends BaseClass {
+	@Column()
+	@RelationId((note: Note) => note.owner)
+	owner_id: string;
+
 	@JoinColumn({ name: "owner_id" })
 	@ManyToOne(() => User, { onDelete: "CASCADE" })
 	owner: User;
