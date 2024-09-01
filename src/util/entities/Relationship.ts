@@ -35,6 +35,13 @@ export enum RelationshipType {
 	friends = 1,
 }
 
+export const RelationshipTypeString = {
+	[RelationshipType.outgoing]: "PENDING_OUTGOING",
+	[RelationshipType.incoming]: "PENDING_INCOMING",
+	[RelationshipType.blocked]: "BLOCKED",
+	[RelationshipType.friends]: "FRIEND",
+}
+
 @Entity({
 	name: "relationships",
 	engine: dbEngine,

@@ -31,6 +31,7 @@ import {
 	JSZipType,
 	Config,
 	Note,
+	RelationshipTypeString,
 } from "@spacebar/util";
 import { storage } from "../../../../cdn/util/Storage";
 
@@ -165,20 +166,14 @@ router.get(
 						soundboardSettings: {},
 					},
 					textAndImages: {
-						diversitySurrogate: "",
-						useThreadSidebar: false,
-						renderSpoilers: "ALWAYS",
-						showCommandSuggestions: true,
 						gifAutoPlay: user.settings.gif_auto_play,
 						animateEmoji: user.settings.animate_emoji,
 						animateStickers: user.settings.animate_stickers,
 						enableTtsCommand: user.settings.enable_tts_command,
 						messageDisplayCompact:
 							user.settings.message_display_compact,
-						explicitContentFilter: 2,
+						explicitContentFilter: user.settings.explicit_content_filter,
 						convertEmoticons: user.settings.convert_emoticons,
-						expressionSuggestionsEnabled: false,
-						dmSpamFilter: 0,
 						explicitContentSettings: {},
 					},
 					notifications: {},
@@ -214,10 +209,12 @@ router.get(
 						developerMode: user.settings.developer_mode,
 					},
 					guildFolders: {
-						folders: members.map((member) => ({
-							guildIds: [member.guild_id], // TODO
+						folders: user.settings.guild_folders.map((folder) => ({
+							...folder,
+							guildIds: folder.guild_ids,
+							guild_ids: undefined,
 						})),
-						guildPositions: [],
+						guildPositions: user.settings.guild_positions,
 					},
 					audioContextSettings: {},
 					communities: {},
@@ -226,7 +223,10 @@ router.get(
 				frecency: {},
 			},
 			connections: user.connected_accounts,
-			relationships: user.relationships,
+			relationships: user.relationships.map((relationship) => ({
+				...relationship,
+				type: RelationshipTypeString[relationship.type],
+			})),
 			guild_settings: members.map((member) => member.settings),
 			payments: [],
 			notes,
@@ -288,7 +288,7 @@ router.get(
 				}
 				if (app.cover_image) {
 					const coverImageFile = await storage.get(
-						"applications/" + app.id + "/" + app.cover_image,
+						"app-icons/" + app.id + "/" + app.cover_image,
 					);
 					if (coverImageFile)
 						await fs.writeFile(
