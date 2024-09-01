@@ -131,6 +131,7 @@ router.get(
 		});
 		const members = await Member.find({
 			where: { id: req.user_id },
+			select: ["guild_id", "settings"],
 			relations: ["guild"],
 		});
 
@@ -144,7 +145,84 @@ router.get(
 			verified: user.verified,
 			flags: user.flags,
 			settings: {
-				settings: user.settings,
+				settings: {
+					versions: {
+						clientVersion: 20,
+						dataVersion: 4889,
+					},
+					inbox: {},
+					guilds: {
+						guilds: {},
+					},
+					userContent: {},
+					voiceAndVideo: {
+						blur: {},
+						afkTimeout: user.settings.afk_timeout,
+						streamNotificationsEnabled:
+							user.settings.stream_notifications_enabled,
+						nativePhoneIntegrationEnabled:
+							user.settings.native_phone_integration_enabled,
+						soundboardSettings: {},
+					},
+					textAndImages: {
+						diversitySurrogate: "",
+						useThreadSidebar: false,
+						renderSpoilers: "ALWAYS",
+						showCommandSuggestions: true,
+						gifAutoPlay: user.settings.gif_auto_play,
+						animateEmoji: user.settings.animate_emoji,
+						animateStickers: user.settings.animate_stickers,
+						enableTtsCommand: user.settings.enable_tts_command,
+						messageDisplayCompact:
+							user.settings.message_display_compact,
+						explicitContentFilter: 2,
+						convertEmoticons: user.settings.convert_emoticons,
+						expressionSuggestionsEnabled: false,
+						dmSpamFilter: 0,
+						explicitContentSettings: {},
+					},
+					notifications: {},
+					privacy: {
+						restrictedGuildIds: user.settings.restricted_guilds,
+						detectPlatformAccounts:
+							user.settings.detect_platform_accounts,
+						contactSyncEnabled: user.settings.contact_sync_enabled,
+						friendSourceFlags: user.settings.friend_source_flags,
+						friendDiscoveryFlags:
+							user.settings.friend_discovery_flags,
+					},
+					debug: {},
+					gameLibrary: {
+						disableGamesTab: user.settings.disable_games_tab,
+					},
+					status: {
+						status: user.settings.status,
+						customStatus: {
+							text: user.settings.custom_status?.text,
+							emojiId: user.settings.custom_status?.emoji_id,
+							emojiName: user.settings.custom_status?.emoji_name,
+							expiresAt: user.settings.custom_status?.expires_at,
+						},
+						showCurrentGame: user.settings.show_current_game,
+					},
+					localization: {
+						locale: user.settings.locale,
+						timezoneOffset: user.settings.timezone_offset,
+					},
+					appearance: {
+						theme: user.settings.theme,
+						developerMode: user.settings.developer_mode,
+					},
+					guildFolders: {
+						folders: members.map((member) => ({
+							guildIds: [member.guild_id], // TODO
+						})),
+						guildPositions: [],
+					},
+					audioContextSettings: {},
+					communities: {},
+					clips: {},
+				},
 				frecency: {},
 			},
 			connections: user.connected_accounts,
