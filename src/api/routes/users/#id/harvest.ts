@@ -172,7 +172,8 @@ router.get(
 						enableTtsCommand: user.settings.enable_tts_command,
 						messageDisplayCompact:
 							user.settings.message_display_compact,
-						explicitContentFilter: user.settings.explicit_content_filter,
+						explicitContentFilter:
+							user.settings.explicit_content_filter,
 						convertEmoticons: user.settings.convert_emoticons,
 						explicitContentSettings: {},
 					},

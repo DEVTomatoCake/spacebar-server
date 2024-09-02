@@ -40,7 +40,7 @@ export const RelationshipTypeString = {
 	[RelationshipType.incoming]: "PENDING_INCOMING",
 	[RelationshipType.blocked]: "BLOCKED",
 	[RelationshipType.friends]: "FRIEND",
-}
+};
 
 @Entity({
 	name: "relationships",
